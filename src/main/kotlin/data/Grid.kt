@@ -1,5 +1,7 @@
 package data
 
+import kotlinx.coroutines.coroutineScope
+
 /**
  * Created by mihael
  * on 30/01/2022 at 15:24
@@ -15,8 +17,8 @@ class Grid(private val size: Int, private val allWords: Set<String>) {
 
     val randomEmptyCell get() = positions.flatMap { it.filter { cells[it.y][it.x] == null } }.randomOrNull()
 
-    fun findWords(): Set<String> {
-        return positions.flatMap { row -> row.flatMap { cell -> findWord(cell) } }.toSet()
+    fun findWords(): List<String> {
+        return emptyList() // TODO
     }
 
     private fun reset() {
@@ -43,14 +45,14 @@ class Grid(private val size: Int, private val allWords: Set<String>) {
     }
 
 
-    private fun findWord(position: Position, path: List<Position> = emptyList()): Set<String> {
+    private suspend fun findWord(position: Position, path: List<Position> = emptyList()): Any = coroutineScope {
         val wordSoFar = path.plus(position).joinToString("") { "${cells[it.y][it.x]}" }
         val isWord = allWords.contains(wordSoFar)
         val reachable = position.surrounding.filter { !path.contains(it) }
         val words = mutableSetOf<String>()
         if (isWord) words.add(wordSoFar)
-        if (path.size > 10) return words
-        return words.plus(reachable.flatMap { findWord(it, path.plus(position)) })
+
+        TODO("Find word has not been implemented yet.")
     }
 
     /**
@@ -79,7 +81,7 @@ class Grid(private val size: Int, private val allWords: Set<String>) {
         return grow(word, avoid, path)
     }
 
-    fun calculatePoints(words: Set<String>) {
+    fun calculatePoints(words: Collection<String>) {
         val totalPoints = words.fold(0) { previous, word ->
             previous + when (word.length) {
                 3, 4 -> 1
