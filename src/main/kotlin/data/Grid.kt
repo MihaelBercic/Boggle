@@ -1,7 +1,5 @@
 package data
 
-import kotlinx.coroutines.coroutineScope
-
 /**
  * Created by mihael
  * on 30/01/2022 at 15:24
@@ -9,16 +7,30 @@ import kotlinx.coroutines.coroutineScope
  */
 class Grid(private val size: Int, private val allWords: Set<String>) {
 
-    val englishAlphabet = arrayOf('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z')
+    val trie = Trie().apply {
+        allWords.forEach { insert(it) }
+    }
+    // val alphabet = arrayOf('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z')
     val alphabet = arrayOf('A', 'B', 'C', 'Č', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'R', 'S', 'Š', 'T', 'U', 'V', 'Z', 'Ž')
 
     val cells = Array(4) { arrayOfNulls<Char>(4) }
-    val positions = cells.mapIndexed { index, chars -> chars.indices.map { Position(it, index, chars.indices) } }
+    val positions = cells.mapIndexed { index, chars -> chars.indices.map { Position(it, index) } }
+    val neighbours = positions.flatten().associateWith { position ->
+        (-1..1).flatMap { xDiff ->
+            (-1..1).map { yDiff ->
+                Position(position.x + xDiff, position.y + yDiff)
+            }
+        }.filter { it != position && it.x in cells.indices && it.y in cells.indices }
+    }
 
     val randomEmptyCell get() = positions.flatMap { it.filter { cells[it.y][it.x] == null } }.randomOrNull()
 
     fun findWords(): List<String> {
-        return emptyList() // TODO
+        val start = System.currentTimeMillis()
+        val allWords = positions.flatten().flatMap { position -> findWord(listOf(position)) }
+        calculatePoints(allWords)
+        println("Search took us ${System.currentTimeMillis() - start}ms")
+        return emptyList()
     }
 
     private fun reset() {
@@ -45,20 +57,20 @@ class Grid(private val size: Int, private val allWords: Set<String>) {
     }
 
 
-    private suspend fun findWord(position: Position, path: List<Position> = emptyList()): Any = coroutineScope {
-        val wordSoFar = path.plus(position).joinToString("") { "${cells[it.y][it.x]}" }
-        val isWord = allWords.contains(wordSoFar)
-        val reachable = position.surrounding.filter { !path.contains(it) }
-        val words = mutableSetOf<String>()
-        if (isWord) words.add(wordSoFar)
-
-        TODO("Find word has not been implemented yet.")
+    private fun findWord(path: List<Position> = emptyList()): Set<String> {
+        val set = mutableSetOf<String>()
+        val currentPosition = path.lastOrNull() ?: return set
+        val wordSoFar = path.joinToString("") { "${cells[it.y][it.x]}" }
+        if (!trie.startsWith(wordSoFar)) return set
+        if (trie.search(wordSoFar)) {
+            println("Found $wordSoFar")
+            set.add(wordSoFar)
+        }
+        val reachable = neighbours[currentPosition]!!.filter { !path.contains(it) }
+        return if (wordSoFar.length < 15) set.plus(reachable.flatMap { findWord(path.plus(it)) })
+        else emptySet()
     }
 
-    /**
-     * Attempts to grow a certain word in the grid.
-     * @return true if the word was successfully added and false if not.
-     * */
     private fun grow(word: String, avoid: MutableList<Position> = mutableListOf(), path: MutableList<Position> = mutableListOf()): Boolean {
         if (path.size == word.length) {
             println("Placed $word")
@@ -66,7 +78,7 @@ class Grid(private val size: Int, private val allWords: Set<String>) {
         }
         val currentIndex = path.size
         val currentPosition = path.lastOrNull() ?: randomEmptyCell ?: return false
-        val reachable = currentPosition.surrounding.filter { position ->
+        val reachable = neighbours[currentPosition]!!.filter { position ->
             cells[position.y][position.x] == null && !avoid.contains(position) && !path.contains(position)
         }
         if (reachable.isEmpty()) {

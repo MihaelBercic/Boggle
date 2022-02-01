@@ -12,8 +12,8 @@ class PositionTest {
     @Test
     fun equality(){
         val array = Array(4) {0}
-        val positionA = Position(0,0, array.indices)
-        val positionB = Position(0,0, array.indices)
+        val positionA = Position(0,0)
+        val positionB = Position(0,0)
         assertEquals(positionA, positionB)
     }
 }

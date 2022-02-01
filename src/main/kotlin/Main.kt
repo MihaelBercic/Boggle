@@ -1,4 +1,5 @@
 import data.Grid
+import data.Trie
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
@@ -14,6 +15,7 @@ import java.net.http.HttpResponse
 val words = File("/Users/mihael/Desktop/slovenske.txt")
     .readText()
     .split("\n")
+    .asSequence()
     .map(String::uppercase)
     .map(String::trim)
     .filter { it.length in (3..10) }
@@ -29,11 +31,11 @@ fun main(args: Array<String>) {
     val grid = Grid(4, words)
     grid.populate(groupedWords)
     val found = grid.findWords()
-    println(grid)
-    grid.calculatePoints(found)
+    // grid.calculatePoints(found)
     found.groupBy { it.length }.toSortedMap().forEach { (length, words) ->
         println("$length => $words")
     }
+    println(grid)
     println("Took us: ${System.currentTimeMillis() - start}ms")
 
 }
