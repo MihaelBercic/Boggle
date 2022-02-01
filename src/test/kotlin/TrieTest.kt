@@ -1,4 +1,4 @@
-import data.ProperTrie
+import data.trie.Trie
 import org.junit.jupiter.api.*
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -12,7 +12,7 @@ class TrieTest {
 
     @Test
     fun insertion() {
-        ProperTrie().apply {
+        Trie().apply {
             assertTrue { insert("timothy") }
             assertTrue { insert("ti") }
             assertTrue { insert("tim") }
@@ -21,7 +21,7 @@ class TrieTest {
 
     @Test
     fun startsWithTest() {
-        ProperTrie().apply {
+        Trie().apply {
             insert("timothy")
             insert("ti")
             insert("tim")
@@ -38,7 +38,7 @@ class TrieTest {
 
     @Test
     fun contains() {
-        ProperTrie().apply {
+        Trie().apply {
             insert("timothy")
             insert("ti")
             insert("tim")

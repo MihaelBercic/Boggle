@@ -1,13 +1,11 @@
-package data
-
-import data.trie.TrieNode
+package data.trie
 
 /**
  * Created by Unknown on Gist
  * on 30/01/2022 at 19:46
  * using IntelliJ IDEA
  */
-class ProperTrie() {
+class Trie() {
 
     private val root = TrieNode()
 
