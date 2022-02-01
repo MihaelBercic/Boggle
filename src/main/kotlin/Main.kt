@@ -1,10 +1,5 @@
+import data.Dictionary
 import data.Grid
-import data.Trie
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.net.URI
 import java.net.http.HttpClient
@@ -12,30 +7,17 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 
 
-val words = File("/Users/mihael/Desktop/slovenske.txt")
-    .readText()
-    .split("\n")
-    .asSequence()
-    .map(String::uppercase)
-    .map(String::trim)
-    .filter { it.length in (3..10) }
-    .sortedByDescending { it.length }
-    .toSet()
-
-val groupedWords = words.groupBy { it.length }
-
-
-fun main(args: Array<String>) {
-    println("Hello World! with ${words.size}")
+fun main() {
     val start = System.currentTimeMillis()
-    val grid = Grid(4, words)
-    grid.populate(groupedWords)
+    val grid = Grid(4, Dictionary.Slovenian)
     val found = grid.findWords()
-    // grid.calculatePoints(found)
+    grid.calculatePoints(found)
+
     found.groupBy { it.length }.toSortedMap().forEach { (length, words) ->
         println("$length => $words")
     }
     println(grid)
+    println("$grid".replace("\n", "").replace(" ", ""))
     println("Took us: ${System.currentTimeMillis() - start}ms")
 
 }

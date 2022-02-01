@@ -36,20 +36,4 @@ class TrieTest {
         }
     }
 
-    @Test
-    fun contains() {
-        Trie().apply {
-            insert("timothy")
-            insert("ti")
-            insert("tim")
-
-            assertTrue { contains("tim") }
-            assertTrue { contains("ti") }
-            assertTrue { contains("timothy") }
-
-            assertFalse { contains("t") }
-            assertFalse { contains("timo") }
-            assertFalse { contains("timothyo") }
-        }
-    }
 }

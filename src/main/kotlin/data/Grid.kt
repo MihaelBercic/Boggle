@@ -1,21 +1,23 @@
 package data
 
+import data.trie.Trie
+
 /**
  * Created by mihael
  * on 30/01/2022 at 15:24
  * using IntelliJ IDEA
  */
-class Grid(private val size: Int, private val allWords: Set<String>) {
+class Grid(private val size: Int, private val dictionary: Dictionary) {
 
-    val trie = Trie().apply {
-        allWords.forEach { insert(it) }
-    }
-    // val alphabet = arrayOf('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z')
-    val alphabet = arrayOf('A', 'B', 'C', 'Č', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'R', 'S', 'Š', 'T', 'U', 'V', 'Z', 'Ž')
+    private val words = dictionary.loadWords()
+    private val groupedWords = words.groupBy { it.length }
+    private val trie = Trie(words)
 
-    val cells = Array(4) { arrayOfNulls<Char>(4) }
-    val positions = cells.mapIndexed { index, chars -> chars.indices.map { Position(it, index) } }
-    val neighbours = positions.flatten().associateWith { position ->
+    private val cells = Array(size) { arrayOfNulls<Char>(size) }
+    private val positions = cells.mapIndexed { index, chars -> chars.indices.map { Position(it, index) } }.flatten()
+    private val randomEmptyCell get() = positions.filter { position -> cells[position.y][position.x] == null }.randomOrNull()
+
+    private val neighbours = positions.associateWith { position ->
         (-1..1).flatMap { xDiff ->
             (-1..1).map { yDiff ->
                 Position(position.x + xDiff, position.y + yDiff)
@@ -23,14 +25,13 @@ class Grid(private val size: Int, private val allWords: Set<String>) {
         }.filter { it != position && it.x in cells.indices && it.y in cells.indices }
     }
 
-    val randomEmptyCell get() = positions.flatMap { it.filter { cells[it.y][it.x] == null } }.randomOrNull()
+    init {
+        populate()
+    }
 
-    fun findWords(): List<String> {
-        val start = System.currentTimeMillis()
-        val allWords = positions.flatten().flatMap { position -> findWord(listOf(position)) }
-        calculatePoints(allWords)
-        println("Search took us ${System.currentTimeMillis() - start}ms")
-        return emptyList()
+
+    fun findWords(): HashSet<String> {
+        return positions.flatMap { position -> findWord(listOf(position)) }.toHashSet()
     }
 
     private fun reset() {
@@ -40,18 +41,22 @@ class Grid(private val size: Int, private val allWords: Set<String>) {
         }
     }
 
-    // TODO improve
-    fun populate(groupedWords: Map<Int, List<String>>) {
+    fun populate() {
         reset()
-        (10 downTo 3).forEach { length ->
-            for (attempt in 0 until 10000) {
+        (10 downTo 5).forEach { length ->
+            for (attempt in 0 until 1000) {
                 val word = groupedWords[length]?.randomOrNull() ?: return@forEach
-                grow(word)
+                try {
+                    if (grow(word)) return@forEach
+                } catch (e:Exception){
+                    println(this)
+                    e.printStackTrace()
+                }
             }
         }
         cells.forEachIndexed { y, row ->
             row.forEachIndexed { x, it ->
-                if (it == null) cells[y][x] = alphabet.random()
+                if (it == null) cells[y][x] = dictionary.alphabet.characters.random()
             }
         }
     }
@@ -62,35 +67,32 @@ class Grid(private val size: Int, private val allWords: Set<String>) {
         val currentPosition = path.lastOrNull() ?: return set
         val wordSoFar = path.joinToString("") { "${cells[it.y][it.x]}" }
         if (!trie.startsWith(wordSoFar)) return set
-        if (trie.search(wordSoFar)) {
-            println("Found $wordSoFar")
-            set.add(wordSoFar)
-        }
+        if (words.contains(wordSoFar)) set.add(wordSoFar)
+
         val reachable = neighbours[currentPosition]!!.filter { !path.contains(it) }
-        return if (wordSoFar.length < 15) set.plus(reachable.flatMap { findWord(path.plus(it)) })
+        return if (wordSoFar.length < 11) set.plus(reachable.flatMap { findWord(path.plus(it)) })
         else emptySet()
     }
 
-    private fun grow(word: String, avoid: MutableList<Position> = mutableListOf(), path: MutableList<Position> = mutableListOf()): Boolean {
-        if (path.size == word.length) {
-            println("Placed $word")
-            return true
-        }
+    private tailrec fun grow(word: String, avoid: MutableList<Position> = mutableListOf(), path: MutableList<Position> = mutableListOf(), shared: HashSet<Position> = hashSetOf()): Boolean {
+        if (path.size == word.length) return true
         val currentIndex = path.size
         val currentPosition = path.lastOrNull() ?: randomEmptyCell ?: return false
-        val reachable = neighbours[currentPosition]!!.filter { position ->
-            cells[position.y][position.x] == null && !avoid.contains(position) && !path.contains(position)
-        }
-        if (reachable.isEmpty()) {
+        val currentCharacter = word[currentIndex]
+        val reachable = neighbours[currentPosition]!!.filter { position -> !avoid.contains(position) && !path.contains(position) }
+        val existing = reachable.firstOrNull { cells[it.y][it.x] == currentCharacter }
+        val chosen = existing ?: reachable.filter { cells[it.y][it.x] == null }.randomOrNull()
+
+        if (chosen == null) {
             path.removeLastOrNull() ?: return false
             avoid.add(currentPosition)
-            cells[currentPosition.y][currentPosition.x] = null
-            return grow(word, avoid, path)
+            if (!shared.remove(currentPosition)) cells[currentPosition.y][currentPosition.x] = null
+            return grow(word, avoid, path, shared)
         }
-        val chosen = reachable.random()
+        if (chosen == existing) shared.add(existing)
         path.add(chosen)
-        cells[chosen.y][chosen.x] = word[currentIndex]
-        return grow(word, avoid, path)
+        cells[chosen.y][chosen.x] = currentCharacter
+        return grow(word, avoid, path, shared)
     }
 
     fun calculatePoints(words: Collection<String>) {
@@ -108,7 +110,7 @@ class Grid(private val size: Int, private val allWords: Set<String>) {
     }
 
     override fun toString(): String = cells.joinToString("\n") {
-        it.joinToString(" ")
+        it.joinToString(" ").replace("null", " ")
     }
 
 }

@@ -5,9 +5,13 @@ package data.trie
  * on 30/01/2022 at 19:46
  * using IntelliJ IDEA
  */
-class Trie() {
+class Trie(collection: Collection<String> = emptySet()) {
 
     private val root = TrieNode()
+
+    init {
+        collection.forEach { insert(it) }
+    }
 
     /** Returns true if the insertion of [string] was successful.*/
     tailrec fun insert(string: String, node: TrieNode = root): Boolean {
@@ -34,15 +38,6 @@ class Trie() {
         val character = string[prefix.length]
         val nextNode = node[character] ?: return false
         return startsWith(string, nextNode)
-    }
-
-    /** Returns true if [string] exists in the structure.*/
-    tailrec fun contains(string: String, node: TrieNode = root): Boolean {
-        if (node.string == string) return true
-        val prefix = node.string.commonPrefixWith(string)
-        val character = string.getOrNull(prefix.length) ?: return false
-        val nextNode = node[character] ?: return false
-        return contains(string, nextNode)
     }
 
     override fun toString(): String = "$root"
