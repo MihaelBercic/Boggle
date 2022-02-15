@@ -8,8 +8,7 @@ package data
 enum class Dictionary(val alphabet: Alphabet, private val dictionaryFile: String) {
 
     Slovenian(Alphabet.Slovenian, "slovenian.txt"),
-    English(Alphabet.English, "english.txt"),
-
+    English(Alphabet.English, "english.txt")
 
     ;
 

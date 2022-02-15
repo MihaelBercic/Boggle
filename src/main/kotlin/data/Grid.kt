@@ -25,12 +25,13 @@ class Grid(private val size: Int, private val dictionary: Dictionary) {
         }.filter { it != position && it.x in cells.indices && it.y in cells.indices }
     }
 
+    data class Finding(val word: String, val sequence: List<Int>)
+
     init {
         populate()
     }
 
-
-    fun findWords(): HashSet<String> {
+    fun findWords(): HashSet<Finding> {
         return positions.flatMap { position -> findWord(listOf(position)) }.toHashSet()
     }
 
@@ -48,7 +49,7 @@ class Grid(private val size: Int, private val dictionary: Dictionary) {
                 val word = groupedWords[length]?.randomOrNull() ?: return@forEach
                 try {
                     if (grow(word)) return@forEach
-                } catch (e:Exception){
+                } catch (e: Exception) {
                     println(this)
                     e.printStackTrace()
                 }
@@ -61,13 +62,16 @@ class Grid(private val size: Int, private val dictionary: Dictionary) {
         }
     }
 
-
-    private fun findWord(path: List<Position> = emptyList()): Set<String> {
-        val set = mutableSetOf<String>()
+    private fun findWord(path: List<Position> = emptyList()): Set<Finding> {
+        val set = mutableSetOf<Finding>()
         val currentPosition = path.lastOrNull() ?: return set
         val wordSoFar = path.joinToString("") { "${cells[it.y][it.x]}" }
         if (!trie.startsWith(wordSoFar)) return set
-        if (words.contains(wordSoFar)) set.add(wordSoFar)
+        if (words.contains(wordSoFar)) {
+            val pathSoFar = path.map { it.y * size + it.x }
+            val finding = Finding(wordSoFar, pathSoFar)
+            set.add(finding)
+        }
 
         val reachable = neighbours[currentPosition]!!.filter { !path.contains(it) }
         return if (wordSoFar.length < 11) set.plus(reachable.flatMap { findWord(path.plus(it)) })
