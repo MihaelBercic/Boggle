@@ -14,6 +14,7 @@ import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.thread
 import kotlin.concurrent.withLock
+import kotlin.random.Random
 
 
 private val activeGames = ConcurrentHashMap<Dictionary, Game>()
@@ -40,9 +41,10 @@ fun main() {
                 val setOfCharacters = "$grid".replace("\n", "").replace(" ", "")
                 val game = Game(
                     setOfCharacters, found.map { it.sequence },
-                    gameDuration = 15,
+                    gameDuration = 90,
                     gatheringDuration = 5,
-                    resultsDuration = 10
+                    resultsDuration = 15,
+                    words = found
                 )
                 queue.put(game)
                 val longestWords = found.sortedByDescending { it.word.length }.map { it.word }.distinct()
@@ -60,13 +62,49 @@ fun main() {
         exception.printStackTrace()
     }
 
-    app.get("/game/{language}") {
-        val dictionary = Dictionary.valueOf(it.pathParam("language"))
+    val randomNames = listOf(
+        "Franc", "Marija", "Jožef", "Ana", "Anton", "Frančiška", "Ivan", "Ivana", "Janez",
+        "Jožefa", "Stanislav", "Terezija", "Alojz", "Angela", "Alojzij", "Antonija", "Jože",
+        "Ljudmila", "Frančišek", "Alojzija", "Štefan", "Štefanija", "Milan", "Pavla", "Martin",
+        "Kristina", "Ludvik", "Rozalija", "Rudolf", "Stanislava", "Viktor",
+        "Vida", "Ciril", "Elizabeta", "Peter", "Katarina", "Leopold", "Olga", "Andrej", "Matilda",
+        "Vladimir", "Ivanka", "Mihael", "Amalija", "Marjan", "Justina", "Miroslav",
+        "Julijana", "Vincenc", "Zofija", "Albin", "Veronika", "Jakob", "Neža", "Pavel", "Helena",
+        "Mirko", "Cecilija", "Dušan", "Albina", "Karel", "Emilija", "Vinko", "Milena", "Josip",
+        "Danica", "Emil", "Marta", "Karol", "Karolina", "Marijan", "Vera", "Stanko",
+        "Nada", "Edvard", "Roza", "Janko", "Dragica", "Slavko", "Marjeta", "Drago", "Anica", "Srečko",
+        "Ema", "Valentin", "Jožica", "Ernest", "Zora", "Matija", "Viktorija", "Avgust",
+        "Ida", "Boris", "Silva", "Avguštin", "Sonja", "Viljem", "Irena", "Aleksander",
+        "Gizela", "Branko", "Gabrijela", "Ferdinand", "Danijela", "Ignac", "Martina",
+        "Ladislav", "Pavlina", "Feliks", "Majda", "Vincencij", "Mihaela", "Marko", "Barbara",
+        "Bogomir", "Slavica", "Jurij", "Lidija", "Maksimiljan", "Miroslava", "Adolf", "Hedvika",
+        "Božidar", "Silvestra", "Rafael", "Magdalena", "Roman", "Milka", "Karl", "Jozefa",
+        "France", "Leopoldina", "Silvester", "Bernarda", "Ignacij", "Darinka",
+        "Jernej", "Cvetka", "Maksimilijan", "Rozina", "Franjo", "Doroteja", "Friderik", "Otilija", "Dominik", "Slavka", "Albert", "Hilda", "Maks", "Berta",
+        "Stjepan", "Irma", "Konrad", "Hermina", "Henrik", "Lucija", "Miloš", "Valentina",
+        "Nikolaj", "Valerija", "Stane", "Cirila", "Nikola", "Julija", "Bojan", "Zdenka", "Filip", "Ana Marija",
+        "Zdravko", "Mira", "Danijel", "Marija Ana", "Danilo", "Zorka",
+        "Dragotin", "Genovefa", "Bogdan", "Marijana", "Matevž", "Draga", "Vekoslav", "Tatjana", "Vid",
+        "Marica", "Dragutin", "Regina", "Florijan", "Jolanda", "Julij", "Vilma", "Petar", "Daniela",
+        "Rajko", "Jelka", "Herman", "Štefka", "Bernard", "Ljubica", "Bruno", "Jolanka"
+    )
+
+    app.get("/game/{language}") { context ->
+        val dictionary = Dictionary.valueOf(context.pathParam("language").replaceFirstChar { it.uppercaseChar() })
         val game = activeGames[dictionary] ?: throw Exception("Game for $dictionary not found!")
         game.startIfNeeded(dictionary)
+        (0..Random.nextInt(20)).map {
+            val randomName = randomNames.random()
+            val secondName = randomNames.random()
+            val secondNameLength = secondName.length
+            val insertion = secondName.substring(Random.nextInt(0, secondNameLength - 1), secondNameLength)
+            val foundWord = game.words.randomOrNull()?.word
+            val gameResult = GameResult("$it", "$randomName$insertion", foundWord, null, Random.nextInt(15))
+            gameResults[game.identifier]?.add(gameResult)
+        }
         val json = json.encodeToString(game)
-        it.header("content-type", "application/json; charset=utf-8")
-        it.result(json)
+        context.header("content-type", "application/json; charset=utf-8")
+        context.result(json)
     }
 
     app.post("/game/results/{id}") {
@@ -90,7 +128,7 @@ fun main() {
         if (gameResults != null) {
             val sorted = gameResults.getResults().sortedByDescending { it.points }
             val top = sorted.take(100).mapIndexed { index, gameResult -> gameResult.copy(position = index + 1) }
-            val userResult = sorted.firstOrNull { it.identifier == userIdentifier }
+            val userResult = top.firstOrNull { it.identifier == userIdentifier }
             val response = json.encodeToString(GameResults(top, userResult))
             it.result(response)
             return@get

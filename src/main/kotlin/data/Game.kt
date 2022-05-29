@@ -24,7 +24,8 @@ data class Game(
     val gameDuration: Long,
     val resultsDuration: Long,
     val gatheringDuration: Long,
-    private var started: String = ""
+    private var started: String = "",
+    @Transient val words: Set<Grid.Finding> = emptySet()
 ) {
 
     fun startIfNeeded(dictionary: Dictionary) {
