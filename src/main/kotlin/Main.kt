@@ -94,13 +94,8 @@ fun main() {
         val game = activeGames[dictionary] ?: throw Exception("Game for $dictionary not found!")
         game.startIfNeeded(dictionary)
         (0..Random.nextInt(20)).map {
-            val randomName = randomNames.random()
-            val secondName = randomNames.random()
-            val secondNameLength = secondName.length
-            val insertion = secondName.substring(Random.nextInt(0, secondNameLength - 1), secondNameLength)
-            val foundWord = game.words.randomOrNull()?.word
-            val gameResult = GameResult("$it", "$randomName$insertion", foundWord, null, Random.nextInt(15))
-            gameResults[game.identifier]?.add(gameResult)
+            // TODO random username generation
+            // TODO points calculation
         }
         val json = json.encodeToString(game)
         context.header("content-type", "application/json; charset=utf-8")
