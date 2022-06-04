@@ -1,5 +1,6 @@
 import data.*
 import io.javalin.Javalin
+import io.javalin.http.staticfiles.Location
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -89,6 +90,13 @@ fun main() {
         "Rajko", "Jelka", "Herman", "Štefka", "Bernard", "Ljubica", "Bruno", "Jolanka"
     )
 
+    val policy = object {}.javaClass.getResource("/policy.html")?.readText()
+    app.get("/") {
+        it.html("<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\"><title>Policy</title></head>Boggle is a game developed by a local Slovenian developer, Mihael Berčič.<br>mihael@regnum.si")
+    }
+    app.get("/policy") {
+        it.html(policy ?: "Not found, sorry.")
+    }
     app.get("/game/{language}") { context ->
         val dictionary = Dictionary.valueOf(context.pathParam("language").replaceFirstChar { it.uppercaseChar() })
         val game = activeGames[dictionary] ?: throw Exception("Game for $dictionary not found!")
